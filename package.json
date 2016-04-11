@@ -1,0 +1,34 @@
+{
+  "name": "rarch",
+  "version": "0.0.1-alpha",
+  "description": "Single-entity revision history packer",
+  "main": "rarch.js",
+  "scripts": {
+    "test": "echo Please use make test instead && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vphantom/rarch.git"
+  },
+  "author": "Stéphane Lavergne <lis@imars.com> (https://github.com/vphantom)",
+  "license": "GPL-3.0",
+  "files": [
+    "LICENSE",
+    "README.md",
+    "rarch.js"
+  ],
+  "bugs": {
+    "url": "https://github.com/vphantom/rarch/issues"
+  },
+  "homepage": "https://github.com/vphantom/rarch#readme",
+  "dependencies": {
+    "vcdiff": "git+https://github.com/vphantom/vcdiff.js.git"
+  },
+  "devDependencies": {
+    "coveralls": "^2.11.9",
+    "eslint": "^2.7.0",
+    "faucet": "0.0.1",
+    "istanbul": "^0.4.3",
+    "tape": "^4.5.1"
+  }
+}
