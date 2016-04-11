@@ -1,7 +1,7 @@
 {
   "name": "rarch",
   "version": "0.0.1-alpha",
-  "description": "Single-entity revision history packer",
+  "description": "Revision history packer in pure JavaScript",
   "main": "rarch.js",
   "scripts": {
     "test": "echo Please use make test instead && exit 1"
