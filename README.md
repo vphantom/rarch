@@ -22,7 +22,7 @@ var rarch = require('rarch');
 var pack = rarch.pack();
 pack.commit('This is a test.');
 pack.commit('This is another test.');
-console.log(pack.toJSON());
+console.log(pack.freeze());
 ```
 
 ### Loading an existing pack
@@ -31,7 +31,7 @@ console.log(pack.toJSON());
 var rarch = require('rarch');
 
 // Assume 'packdata' contains a previously-saved pack
-// Either a rarch Array, JSON string or Zlib binary
+// Either a rarch Array, JSON string or Gzipped JSON
 var pack = rarch.pack(packdata);
 
 // Add newer commits or browse the history...
@@ -46,7 +46,7 @@ var rarch = require('rarch');
 var tree = rarch.tree(treedata);
 console.log(tree.some_entry[0].timestamp);  // Oldest timestamp of 'some_entry'
 tree.some_entry.commit(newData);  // Add a newer revision to that pack
-treedata = tree.toZlib();  // Compress updated tree, ready to save back
+treedata = tree.toGzip();  // Compress updated tree, ready to save back
 ```
 
 ## API: Packs
@@ -64,13 +64,13 @@ myObj = JSON.parse(savedObj);
 myObj.foo.bar.pack = rarch.pack(myObj.foo.bar.pack);  // Re-activate
 ```
 
-### pack.toJSON()
+### pack.freeze()
 
 Convenience wrapper for `JSON.stringify()`.  The resulting serialized string can be fed back to `rarch.pack()` later.
 
-### pack.toZlib()
+### pack.toGzip()
 
-Passes the result of `pack.toJSON()` through Zlib compression.  The resulting binary string can be fed back to `rarch.pack()` later.  This is the ideal format to save to disk or database cell.
+Passes the result of `pack.freeze()` through Gzip compression.  The resulting binary string can be fed back to `rarch.pack()` later.  This is the ideal format to save to disk or database cell.
 
 ### pack.commit(*data*[, *metadata*])
 
@@ -120,13 +120,13 @@ delete tree.foo;
 
 ### rarch.tree([*tree*])
 
-Like `rarch.pack()`, when fed any kind of tree (object, JSON string, Zlib compressed JSON string), returns a usable tree instance.  It is safe to pass its result back to itself.
+Like `rarch.pack()`, when fed any kind of tree (object, JSON string, Gzip compressed JSON string), returns a usable tree instance.  It is safe to pass its result back to itself.
 
-### tree.toJSON()
+### tree.freeze()
 
-Like `pack.toJSON()`, this is a convenience wrapper to `JSON.stringify()`.  Its result can be fed back to `rarch.tree()` later.
+Like `pack.freeze()`, this is a convenience wrapper to `JSON.stringify()`.  Its result can be fed back to `rarch.tree()` later.
 
-### tree.toZlib()
+### tree.toGzip()
 
-Like `pack.toZlib()`, this passes the result of `tree.toJSON()` through Zlib compression.  The resulting binary string can be fed back to `rarch.tree()` later.  This is the ideal format to save to disk or database cell.
+Like `pack.toGzip()`, this passes the result of `tree.freeze()` through Gzip compression.  The resulting binary string can be fed back to `rarch.tree()` later.  This is the ideal format to save to disk or database cell.
 
