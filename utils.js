@@ -1,25 +1,44 @@
-var crypto = require("crypto");
-var zlib = require("zlib");
+var crypto = require('crypto');
 
+/**
+ * Compute MD5 checksum on a string or buffer
+ *
+ * @param {(Buffer|string)} data The data to checksum
+ *
+ * @return {string} Hex representation of the checksum
+ */
 function md5sum(data) {
-  var hasher = crypto.createHash("md5");
+  var hasher = crypto.createHash('md5');
 
   hasher.update(data);
-  return hasher.digest("hex");
+  return hasher.digest('hex');
 }
 
-
+/**
+ * Copy properties from one object to another
+ *
+ * @param {Object} srcObj Source
+ * @param {Object} dstObj Destination
+ *
+ * @return {void}
+ */
 function addProps(srcObj, dstObj) {
   var prop = null;
 
   for (prop in srcObj) {
-    if (srcObj.hasOwnProperty(prop) && prop[0] !== "_") {
+    if (srcObj.hasOwnProperty(prop) && prop[0] !== '_') {
       dstObj[prop] = srcObj[prop];
     }
   }
 }
 
-
+/**
+ * Test if something is gzipped
+ *
+ * @param {(Buffer|string)} buf Data to examine
+ *
+ * @return {boolean} Whether it has the gzip header signature
+ */
 function isGzip(buf) {
   return (
     buf
@@ -30,21 +49,9 @@ function isGzip(buf) {
   );
 }
 
-function thaw(obj) {
-  if (isGzip(obj)) {
-    obj = zlib.gunzipSync(obj);
-  }
-  // A buffer would also be an object, this seems safer?
-  if (obj[0] === "[" || obj[0] === "{") {
-    obj = JSON.parse(obj);
-  }
-  return obj;
-}
-
 
 module.exports = {
   md5sum  : md5sum,
   addProps: addProps,
-  isGzip  : isGzip,
-  thaw    : thaw
+  isGzip  : isGzip
 };

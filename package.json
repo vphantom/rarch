@@ -22,9 +22,11 @@
   },
   "homepage": "https://github.com/vphantom/rarch#readme",
   "dependencies": {
+    "async": "^2.0.0-rc.3",
     "vcdiff": "git+https://github.com/vphantom/vcdiff.js.git"
   },
   "devDependencies": {
+    "bluebird": "^3.3.5",
     "coveralls": "^2.11.9",
     "eslint": "^2.7.0",
     "faucet": "0.0.1",

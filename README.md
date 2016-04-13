@@ -4,9 +4,11 @@ Revision history packer in pure JavaScript.
 
 This is similar to, and arose from the need in JavaScript for something similar to, good old [RCS](https://www.gnu.org/software/rcs/) where a single file contains not only its most recent version, but also all previous versions along with a thin layer of metadata.  Just like RCS, rarch's strength is in using [delta encoding](https://en.wikipedia.org/wiki/Delta_encoding): the most recent version of the data is stored in full, and reverse differences to each progressively older revision are stored.  The result is very space-efficient and is optimized for the most common use cases of accessing the latest revision and adding a newer revision on top.
 
-I use it to manage revisions of web pages, but it uses [vcdiff.js](https://github.com/vphantom/vcdiff.js) under the hood which should be binary-safe.
+I use it to manage revisions of web pages, but it uses [vcdiff.js](https://github.com/vphantom/vcdiff.js) under the hood which should be binary-safe for other purposes.
 
-Unlike RCS and a bit more like Git, multiple packs can be named and grouped together for convenience.  Delta encoding is only applied to a single pack's history however, and not across packs.
+Unlike RCS and a bit more like Git, multiple packs can be named and grouped together in "trees" for convenience.  Delta encoding is only applied to a single pack's history however, and not across packs.
+
+For maximum compatibility, the asynchronous bits of this module implement the standard Node callback strategy using [async](https://github.com/caolan/async) under the hood, and if you're using [Bluebird](https://github.com/petkaantonov/bluebird) globally, the promisified "...Async" versions of all async methods are also available.
 
 ## Installation & Basic Usage
 
@@ -14,27 +16,38 @@ Unlike RCS and a bit more like Git, multiple packs can be named and grouped toge
 npm install rarch
 ```
 
-### Creating a new pack
+### Creating new / reviving stored
 
 ```js
 var rarch = require('rarch');
 
-var pack = rarch.pack();
-pack.commit('This is a test.');
-pack.commit('This is another test.');
-console.log(pack.freeze());
+// To revive a stored pack, replace 'null' with contents.
+// Contents can be one of:
+// - Gzipped JSON
+// - JSON
+// - Existing object
+rarch.pack(null, function(err, pack) {
+  pack.commit('This is the initial content.');
+  pack.commit('This is a new revision of content.');
+  pack.string(function(err, string) {
+    console.log('JSON ready to save: ' + string);
+  });
+});
 ```
 
-### Loading an existing pack
+If you're using [Bluebird](https://github.com/petkaantonov/bluebird) globally, the above could be simplified using a coroutine:
 
 ```js
+global.Promise = require('bluebird');
 var rarch = require('rarch');
 
-// Assume 'packdata' contains a previously-saved pack
-// Either a rarch Array, JSON string or Gzipped JSON
-var pack = rarch.pack(packdata);
-
-// Add newer commits or browse the history...
+Promise.coroutine(function *() {
+  let pack = yield rarch.packAsync(null);  // null is optional
+  pack.commit('This is the initial content.');
+  pack.commit('This is a new revision of content.');
+  let string = yield pack.string();
+  console.log('JSON ready to save: ' + string);
+})();
 ```
 
 ### Trees
@@ -42,47 +55,63 @@ var pack = rarch.pack(packdata);
 ```js
 var rarch = require('rarch');
 
-// Assume treedata was loaded from somewhere
-var tree = rarch.tree(treedata);
-console.log(tree.some_entry[0].timestamp);  // Oldest timestamp of 'some_entry'
-tree.some_entry.commit(newData);  // Add a newer revision to that pack
-treedata = tree.toGzip();  // Compress updated tree, ready to save back
+rarch.tree(null, function(err, tree) {
+  rarch.pack(null, function(err, pack) {
+    tree.somePackName = pack;
+    tree.somePackName.commit('This pack now has content...');
+    tree.gzip(function(err, buffer) {
+      // ...save 'buffer' to disk or database, perhaps
+    });
+  });
+});
 ```
 
 ## API: Packs
 
-### rarch.pack([*pack*])
+### rarch.pack([*pack*,] *callback*)
 
-Returns a usable pack instance.  If a pack was provided, it will be decompressed and JSON-decoded as necessary and instance methods will be added if they weren't already present.  It is safe to pass a pack instance as well, in which case it would be returned unchanged.
+##### Bluebird: rarch.packAsync([*pack*])
 
-Such a pack instance is actually an `Array` of objects, each of which representing an individual commit in chronological order.  The array gets a few additional methods (see below).
+Produces a usable pack instance.  The provided back data will be decompressed and JSON-decoded as necessary and instance methods will be added if they weren't already present.  It is safe to pass a pack instance as well, in which case it would pass unchanged.  If `pack` isn't provided, a new one will be created.
+
+Such a pack instance is actually an `Array` of objects, each of which representing an individual commit in chronological order.  The array gets a few additional pack-related methods (see below).
 
 You can include a pack instance directly as part of a larger structure on which you'd invoke `JSON.stringify()` or equivalent yourself down the line.  Just pass the pack through `rarch.pack()` again when you load it back in the future to make it usable:
 
 ```js
 myObj = JSON.parse(savedObj);
-myObj.foo.bar.pack = rarch.pack(myObj.foo.bar.pack);  // Re-activate
+rarch.pack(myObj.foo.bar.pack, function(err, pack) {
+  myObj.foo.bar.pack = pack;  // Re-activated
+});
 ```
 
-### pack.freeze()
+### pack.string(*callback*)
 
-Convenience wrapper for `JSON.stringify()`.  The resulting serialized string can be fed back to `rarch.pack()` later.
+##### Bluebird: pack.stringAsync()
 
-### pack.toGzip()
+At the moment, this is a wrapper for `JSON.stringify()` but this may change in the future, which is why this method already exists.  The resulting serialized string can be fed back to `rarch.pack()` later.
 
-Passes the result of `pack.freeze()` through Gzip compression.  The resulting binary string can be fed back to `rarch.pack()` later.  This is the ideal format to save to disk or database cell.
+### pack.gzip(*callback*)
+
+##### Bluebird: pack.gzipAsync()
+
+Passes the result of `pack.string()` through Gzip compression.  The resulting `Buffer` can be fed back to `rarch.pack()` later.  This is the ideal format to save to disk or database cell.
 
 ### pack.commit(*data*[, *metadata*])
 
 Appends a newer version of `data` to the pack.  All properties of `metadata` not starting with an underscore `_` are copied along in the new commit object.  Some properties have special meaning:
 
-- `_skipUnchanged` If present and true, would cause the revision **not** to be added at all if its data is identical to the current most recent version.
+- `_skipUnchanged` If present and true, would cause the revision **not** to be added at all if its data is identical to the current most recent version.  (This is done internally by comparing MD5 checksums.)
 
-- `timestamp` If none is supplied, this will be set as the current number of seconds since Epoch at the moment the commit is created.
+- `timestamp` If none is supplied, it will automatically be set as the current number of seconds since Epoch at the moment the commit is created.
+
+### pack.reset([*data*[, *metadata*]])
+
+Delete the entire pack's history.  If `data` (and possibly `metadata`) is supplied, then `pack.commit()` is invoked.  This was created as a convenience for use cases where only some packs in a larger tree would need versioning and others would not.
 
 ### Pack iteration
 
-As a pack is an `Array`, iteration works as expected:
+Because a pack is an `Array`, iteration works as expected:
 
 ```js
 var rarch = require('rarch');
@@ -100,15 +129,19 @@ pack.forEach(function(commit, i, pack) {
 });
 ```
 
-### pack[*n*].data() / commit.data()
+### pack[*n*].data(*callback*) / commit.data(*callback*)
 
-Each individual commit in a pack's history offers this method to compute the revision's original data.  Therefore, unlike other properties which can be accessed directly like `timestamp`, the original data must be accessed through the `data()` method.
+##### Bluebird: pack[*n*].dataAsync() / commit.dataAsync()
+
+Unlike other properties of commits like `timestamp`, each individual commit in a pack's history is stored as a compact delta, and therefore must be reconstructed on demand.
 
 ## API: Trees
 
-A tree (named for its loose relationship with Git's internal concept) is simply an object with named properties leading to packs, as a convenient means to group packs together.  Unlike Git's internal trees, however, this structure is flat (there cannot be a tree within a tree).
+A tree (named for its rough equivalence to Git's internal concept of that name) is simply an object with named properties leading to packs, as a convenient means to group packs together.  The result is not unlike a filesystem, where all versions of files are kept, and with `tree.gzip()` one can essentially use this as a versioned JavaScript-native archiver.
 
-Adding and removing packs from a tree is done the usual object way:
+**LIMITATION:** This version of rarch cannot nest trees within trees: a member of a tree is necessarily a pack.  Trees weren't named "groups" for future backwards-compatibility when nested trees eventually get implemented.
+
+Because trees are regular objects with a few special methods added, adding and removing packs from trees works as expected:
 
 ```js
 // Add new pack 'foo' held in variable fooPack
@@ -118,15 +151,20 @@ tree.foo = fooPack;
 delete tree.foo;
 ```
 
-### rarch.tree([*tree*])
+### rarch.tree([*tree*,] *callback*)
 
-Like `rarch.pack()`, when fed any kind of tree (object, JSON string, Gzip compressed JSON string), returns a usable tree instance.  It is safe to pass its result back to itself.
+##### Bluebird: rarch.treeAsync([*tree*])
 
-### tree.freeze()
+Like `rarch.pack()`, when fed any kind of tree (object, JSON string, Gzip buffer), produces a usable tree instance.  It is safe to pass its result back to itself.
 
-Like `pack.freeze()`, this is a convenience wrapper to `JSON.stringify()`.  Its result can be fed back to `rarch.tree()` later.
+### tree.string(*callback*)
 
-### tree.toGzip()
+##### Bluebird: tree.stringAsync()
 
-Like `pack.toGzip()`, this passes the result of `tree.freeze()` through Gzip compression.  The resulting binary string can be fed back to `rarch.tree()` later.  This is the ideal format to save to disk or database cell.
+Like `pack.string()`, this stringifies the tree and its result can be fed back to `rarch.tree()` later.
 
+### tree.gzip(*callback*)
+
+##### Bluebird: tree.gzipAsync()
+
+Like `pack.gzip()`, this passes the result of `tree.string()` through Gzip compression.  The resulting buffer can be fed back to `rarch.tree()` later.  This is the ideal format to save to disk or database cell.
