@@ -127,10 +127,13 @@ function packCommit(data, metadata) {
   commit.data = commitData.bind(commit, this, versions);
   // Support Bluebird automatically if it's globally available
   if (typeof Promise.promisify === 'function') {
-    commit.dataAsync = Promise.promisify(commit.data);
+    commit.dataAsync = Promise
+      .promisify(commitData)
+      .bind(commit, this, versions)
+    ;
   }
 
-  if (typeof commit['timestamp'] !== 'string') {
+  if (typeof commit['timestamp'] !== 'number') {
     commit.timestamp = Math.floor(date.getTime() / 1000);
   }
   if (typeof head === 'object') {
@@ -175,7 +178,9 @@ function packReset(data, metadata) {
  */
 function thaw(obj, callback) {
   var deJSON = function(err, obj) {
-    // A buffer would also be an object, this seems safer?
+    if (Buffer.isBuffer(obj)) {
+      obj = obj.toString();
+    }
     if (obj[0] === '[' || obj[0] === '{') {
       obj = JSON.parse(obj);
     }
@@ -210,7 +215,10 @@ function makePack(pack, callback) {
         commit.data = commitData.bind(commit, pack, i);
         // Support Bluebird automatically if it's globally available
         if (typeof Promise.promisify === 'function') {
-          commit.dataAsync = Promise.promisify(commit.data);
+          commit.dataAsync = Promise
+            .promisify(commitData)
+            .bind(commit, pack, i)
+          ;
         }
       });
       utils.addProps(rarch._packMethods, pack);

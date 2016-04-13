@@ -1,4 +1,6 @@
-# rarch v0.0.1-alpha
+# rarch v1.0.0
+
+[![Build Status](https://travis-ci.org/vphantom/rarch.svg?branch=v1.0.0)](https://travis-ci.org/vphantom/rarch) [![Coverage Status](https://coveralls.io/repos/github/vphantom/rarch/badge.svg?branch=v1.0.0)](https://coveralls.io/github/vphantom/rarch?branch=v1.0.0)
 
 Revision history packer in pure JavaScript.
 

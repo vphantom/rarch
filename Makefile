@@ -9,7 +9,7 @@ clean:
 	rm -fr coverage
 
 lint:
-	$(JSLINT) rarch.js test/index.js
+	$(JSLINT) rarch.js util.js test/index.js
 
 test:
 	$(ISTANBUL) cover --print none --report lcov -x 'test/*' test/index.js |$(TAP)

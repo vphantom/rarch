@@ -1,6 +1,6 @@
 {
   "name": "rarch",
-  "version": "0.0.1-alpha",
+  "version": "1.0.0",
   "description": "Revision history packer in pure JavaScript",
   "main": "rarch.js",
   "scripts": {
@@ -15,7 +15,8 @@
   "files": [
     "LICENSE",
     "README.md",
-    "rarch.js"
+    "rarch.js",
+    "util.js"
   ],
   "bugs": {
     "url": "https://github.com/vphantom/rarch/issues"
