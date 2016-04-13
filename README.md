@@ -42,7 +42,7 @@ global.Promise = require('bluebird');
 var rarch = require('rarch');
 
 Promise.coroutine(function *() {
-  let pack = yield rarch.packAsync(null);  // null is optional
+  let pack = yield rarch.packAsync();
   pack.commit('This is the initial content.');
   pack.commit('This is a new revision of content.');
   let string = yield pack.string();
@@ -72,11 +72,11 @@ rarch.tree(null, function(err, tree) {
 
 ##### Bluebird: rarch.packAsync([*pack*])
 
-Produces a usable pack instance.  The provided back data will be decompressed and JSON-decoded as necessary and instance methods will be added if they weren't already present.  It is safe to pass a pack instance as well, in which case it would pass unchanged.  If `pack` isn't provided, a new one will be created.
+Produces a usable pack instance.  The provided back data will be decompressed and/or JSON-decoded as necessary and instance methods will be added if they weren't already present.  It is thus safe to pass a pack instance as well, in which case it would pass unchanged.  If `pack` isn't provided, a new one will be created.
 
 Such a pack instance is actually an `Array` of objects, each of which representing an individual commit in chronological order.  The array gets a few additional pack-related methods (see below).
 
-You can include a pack instance directly as part of a larger structure on which you'd invoke `JSON.stringify()` or equivalent yourself down the line.  Just pass the pack through `rarch.pack()` again when you load it back in the future to make it usable:
+You can include a pack instance directly as part of a larger structure on which you'd invoke `JSON.stringify()` or equivalent yourself down the line.  Just pass the pack through `rarch.pack()` again when you load it in the future to make it usable:
 
 ```js
 myObj = JSON.parse(savedObj);
@@ -107,7 +107,7 @@ Appends a newer version of `data` to the pack.  All properties of `metadata` not
 
 ### pack.reset([*data*[, *metadata*]])
 
-Delete the entire pack's history.  If `data` (and possibly `metadata`) is supplied, then `pack.commit()` is invoked.  This was created as a convenience for use cases where only some packs in a larger tree would need versioning and others would not.
+Delete the entire pack's history.  If `data` (and possibly `metadata`) is supplied, then `pack.commit()` is invoked.  This was created as a convenience for use cases where only some packs in a tree would need versioning.
 
 ### Pack iteration
 
@@ -137,9 +137,9 @@ Unlike other properties of commits like `timestamp`, each individual commit in a
 
 ## API: Trees
 
-A tree (named for its rough equivalence to Git's internal concept of that name) is simply an object with named properties leading to packs, as a convenient means to group packs together.  The result is not unlike a filesystem, where all versions of files are kept, and with `tree.gzip()` one can essentially use this as a versioned JavaScript-native archiver.
+A tree (named for its rough equivalence to Git's internal concept of that name) is simply an object with named properties leading to packs, as a convenient means to group packs together.  The result is not unlike an enhanced filesystem where all versions of each file are kept, and with `tree.gzip()` one can essentially use this as a versioned JavaScript-native archiver.
 
-**LIMITATION:** This version of rarch cannot nest trees within trees: a member of a tree is necessarily a pack.  Trees weren't named "groups" for future backwards-compatibility when nested trees eventually get implemented.
+**LIMITATION:** This version of rarch cannot nest trees within trees: a member of a tree is necessarily a pack.  The reason why trees weren't named "groups" is for future backwards-compatibility when nested trees eventually get implemented.
 
 Because trees are regular objects with a few special methods added, adding and removing packs from trees works as expected:
 
@@ -155,7 +155,7 @@ delete tree.foo;
 
 ##### Bluebird: rarch.treeAsync([*tree*])
 
-Like `rarch.pack()`, when fed any kind of tree (object, JSON string, Gzip buffer), produces a usable tree instance.  It is safe to pass its result back to itself.
+Like `rarch.pack()`, when fed any representation of a tree (object, JSON string, Gzip buffer), produces a usable tree instance.  It is safe to pass its result back to itself.
 
 ### tree.string(*callback*)
 
