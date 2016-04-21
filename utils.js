@@ -1,3 +1,10 @@
+/*! Name v1.0.1
+ * <https://github.com/vphantom/rarch>
+ * Copyright 2016 Stéphane Lavergne
+ * Free software under MIT License: <https://opensource.org/licenses/MIT> */
+
+'use strict';
+
 var crypto = require('crypto');
 
 /**
